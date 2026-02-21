@@ -1,0 +1,10 @@
+- [p1ngul1n0/blackbird: Username Search](https://github.com/p1ngul1n0/blackbird): Tool to search social networks by username or email.
+- [WhatsMyName Web](https://whatsmyname.app/): Aggregated search for usernames across multiple social platforms.
+- [Free People Search - IDCrawl](https://www.idcrawl.com/): People search engine focused on social networks and online footprints.
+- [Find Instagram User ID](https://commentpicker.com/instagram-user-id.php): Tool to retrieve Instagram numeric user IDs by username.
+- [Find GitHub User Email](https://emailaddress.github.io/): Search for publicly available emails related to GitHub users.
+- [Discord Lookup](https://discord.id/): Look up Discord user and server information.
+- [Epic Games Account Lookup](https://epic-lookup.com/): Tool for investigating Epic Games user profiles.
+- [Minecraft Lookup](https://crafty.gg/): Lookup service for Minecraft user profiles and stats.
+- [NameMC: Minecraft Names & Skins](https://namemc.com/): Minecraft username and skin lookup.
+- [Instagram Photo Downloader](https://inflact.com/instagram-downloader/photo/): Download photos from Instagram.
