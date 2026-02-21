@@ -1,0 +1,23 @@
+- [DeHashed | Password Search](https://dehashed.com/): Search leaked credentials and breach databases.
+- [Intelligence X](https://intelx.io/): Search engine for monitoring dark web and leaked data.
+- [Snusbase Search](https://beta.snusbase.com/): Database search for compromised account data.
+- [Predicta Search | Reverse Email/Phone](https://www.predictasearch.com/): Reverse lookup for emails and phone numbers.
+- [Just Delete Me | Account Removal Links](https://justdeleteme.xyz/): Directory of direct links to delete accounts from web services.
+- [Email Header Analyzer](https://dnschecker.org/email-header-analyzer.php): Tool to analyze email headers and trace sources.
+- [FreeCarrierLookup](https://www.freecarrierlookup.com/): Identify mobile carrier and phone details.
+- [Spy Dialer | Reverse Phone Lookup](https://spydialer.com/): Reverse phone number lookup service.
+- [Open Corporates](https://opencorporates.com/): Large database of companies and corporate data.
+- [Ratsit (Sweden)](https://www.ratsit.se/): Swedish people and company search.
+- [TruePeopleSearch](https://www.truepeoplesearch.com/): People search with addresses and phone numbers.
+- [Canada Person Lookup](https://www.canada411.ca/): Canadian people and business lookup.
+- [nuwber](https://nuwber.com/): People and address search.
+- [fastpeoplesearch](https://www.fastpeoplesearch.com/): Public records search.
+- [cyberbackgroundchecks](https://www.cyberbackgroundchecks.com/): Background checking service.
+- [Court Records Directory](https://www.courtreference.com/): Search U.S. court records.
+- [Free Public Records Search - judyrecords](https://www.judyrecords.com/): U.S. public records lookup.
+- [Arrests.org](https://arrests.org/): Public arrest records.
+- [Rain-Street Arrests](https://rain-street.org/): Updated U.S. arrest and criminal records.
+- [Bitcoin Abuse Database](https://www.bitcoinabuse.com/): Report and search cryptocurrency-related abuse.
+- [BitcoinWhosWho](https://www.bitcoinwhoswho.com/): Directory of known cryptocurrency addresses.
+- [Chainabuse](https://www.chainabuse.com/?bca=true): Blockchain abuse reporting platform.
+- [US Phone Book](https://www.usphonebook.com/): U.S. phone number directory.

@@ -1,0 +1,11 @@
+- [GeoSpy AI - Photo Geolocation & Intelligence](https://geospy.web.app/): AI-powered photo geolocation for investigative analysis.
+- [Photo Location Search using AI](https://picarta.ai/): Automatically find locations from images.
+- [Geolocation Estimation Labs](https://labs.tib.eu/geoestimation/): Tools that estimate photo locations and geospatial intelligence.
+- [Kosmos 2 (Multimodal geolocation)](https://huggingface.co/spaces/ydshieh/Kosmos-2): AI model for combining multimodal data to estimate geolocation.
+- [Ransomware.live](https://www.ransomware.live/): Real-time ransomware attack monitoring dashboard.
+- [Ransomchats Viewer](https://ransomch.at/): Viewer for ransomware negotiation chat leaks.
+- [AnalyzeID](https://analyzeid.com/): Analyze digital footprint and online identity data.
+- [Torrent downloads for IP](https://iknowwhatyoudownload.com/en/peer/): Peer-to-peer download activity monitoring by IP.
+- [Digital Footprint Check](https://www.digitalfootprintcheck.com/): Tool to visualize and audit online digital footprints.
+- [DataVis by OSINT Combine](https://osintcombine.tools/): OSINT visualization tools to analyze complex datasets.
+- [MalAPI.io](https://malapi.io/): API-based malware intelligence and live threat data.
