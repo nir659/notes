@@ -1,0 +1,55 @@
+name: Sync posts to blog repo
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-to-blog
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout content repo
+        uses: actions/checkout@v4
+
+      - name: Checkout blog repo
+        uses: actions/checkout@v4
+        with:
+          repository: nir659/blog
+          ref: main
+          path: site
+          token: ${{ secrets.PUSH_TOKEN }}
+
+      - name: Sync posts/ -> site/app/posts/
+        run: |
+          set -euo pipefail
+
+          mkdir -p site/app/posts
+
+          rsync -av --delete \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            --exclude ".obsidian/" \
+            "posts/" \
+            "site/app/posts/"
+
+      - name: Create or update PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.PUSH_TOKEN }}
+          path: site
+          commit-message: "chore(posts): sync content"
+          title: "chore(posts): sync content"
+          body: |
+            Automated sync from `nir659/blog-content` into `nir659/blog` (`app/posts`).
+          branch: "bot/sync-posts"
+          base: main
+          labels: automated-update
+          delete-branch: false
