@@ -1,200 +1,247 @@
-> **System Name:** Mail Stack Boundary Design
-> **Domain / Service:** nir.rip
-> **Status:** Stable
-> **Last Updated:** 2026-02-03
-
 ---
-## 1. What This Is
-
-This document defines the boundaries of my mail stack now that IMAP and mailbox storage live on the VPS (single-host setup). This is not an installation guide. It is a boundary and risk document: what is exposed, what is trusted, what is isolated, and what I am knowingly accepting.
-
+title: Mail Stack Boundary Design
+slug: mail-stack-boundary-design
+type: design
+status: draft
+date: 2026-02-03
+updated: 2026-02-03
+tags:
+  - mail
+  - security
+  - boundary
+  - postfix
+  - dovecot
+summary: This note defines the trust boundaries, exposed services, and known compromises in the current single-host mail stack.
+verification_status: partial
+verified_on: 2026-02-03
 ---
-## 2. Design Intent
 
-- Minimize public attack surface without harming deliverability.
-- Make trust relationships explicit and reviewable.
-- Keep failure modes understandable under stress.
-- Preserve a clean escape hatch back to a split-host design later.
+# Mail Stack Boundary Design
 
----
-## 3. System Boundaries
+## Context
 
-### 3.1 External Boundary
+This document defines the boundaries of the mail stack now that IMAP and mailbox storage live on the VPS in a single-host setup.
+
+This is not an installation guide. It is a boundary and risk document: what is exposed, what is trusted, what is isolated, and what is knowingly accepted.
+
+## Goal
+
+- minimize public attack surface without harming deliverability
+- make trust relationships explicit and reviewable
+- keep failure modes understandable under stress
+- preserve a clean escape hatch back to a split-host design later
+
+## Environment
+
+- system name: Mail Stack Boundary Design
+- domain / service: `nir.rip`
+- status: stable
+- single VPS hosting MTA, IMAP, and mailbox storage
+- public entrypoints on SMTP 25, Submission 587, and IMAPS 993
+
+## System Boundaries
+
+### External boundary
 
 Everything outside the VPS is untrusted.
 
 Public entrypoints:
-- SMTP (25) — server-to-server
-- Submission (587) — authenticated client send
-- IMAPS (993) — authenticated client read
 
-### 3.2 Internal Boundary
+- SMTP (25) for server-to-server mail
+- Submission (587) for authenticated client send
+- IMAPS (993) for authenticated client read
+
+### Internal boundary
 
 With everything on one VPS, boundaries are enforced by:
+
 - Unix permissions
-- service users/groups
+- service users and groups
 - socket access
 - firewall rules
 - configuration correctness
 
 This is weaker than physical or VM separation. That is a known compromise.
 
----
-## 4. Trust Model
+## Trust Model
 
 ### Trust tiers
-1. **Untrusted:** Internet (random MTAs, scanners, bots)
-2. **Semi-trusted:** Legitimate external MTAs
-3. **Trusted:** Authenticated users
-4. **Highly trusted:** Root and local service accounts
+
+1. **Untrusted:** Internet, including random MTAs, scanners, and bots
+2. **Semi-trusted:** legitimate external MTAs
+3. **Trusted:** authenticated users
+4. **Highly trusted:** root and local service accounts
 
 ### Assumptions
-- External senders can be compromised.
-- Authenticated users can lose credentials.
-- Client devices are not trustworthy.
-- VPS compromise equals total system compromise.
 
----
-## 5. Public Attack Surface
+- external senders can be compromised
+- authenticated users can lose credentials
+- client devices are not trustworthy
+- VPS compromise equals total system compromise
 
-### 5.1 SMTP (25)
+## Public Attack Surface
+
+### SMTP (25)
 
 **Purpose:** Receive inbound mail.
 
 Primary risks:
-- Open relay probing
+
+- open relay probing
 - SMTP abuse and flooding
-- Queue growth and disk exhaustion
-- Reputation poisoning
+- queue growth and disk exhaustion
+- reputation poisoning
 - MTA parsing vulnerabilities
 
 Controls:
-- Strict relay and recipient restrictions
-- Recipient existence checks via maps
-- Rate limiting
-- Opportunistic TLS
-- Queue visibility
 
-### 5.2 Submission (587)
+- strict relay and recipient restrictions
+- recipient existence checks via maps
+- rate limiting
+- opportunistic TLS
+- queue visibility
+
+### Submission (587)
 
 **Purpose:** Authenticated outbound mail.
 
 Primary risks:
-- Credential stuffing
-- Stolen credentials → spam → reputation death
-- Weak TLS or auth downgrade
+
+- credential stuffing
+- stolen credentials leading to spam and reputation damage
+- weak TLS or auth downgrade
 
 Controls:
-- Mandatory auth + TLS
-- Fail2ban on auth failures
-- Separate submission listener
-- Strong credentials
-- Per-user rate limiting
 
-### 5.3 IMAPS (993)
+- mandatory auth and TLS
+- Fail2ban on auth failures
+- separate submission listener
+- strong credentials
+- per-user rate limiting
+
+### IMAPS (993)
 
 **Purpose:** Mailbox access.
 
 Primary risks:
-- Brute force auth
+
+- brute-force auth
 - IMAP implementation flaws
-- Client compromise
-- Credential reuse
+- client compromise
+- credential reuse
 
 Controls:
+
 - TLS-only access
 - Fail2ban on dovecot auth
-- Disable legacy auth methods
-- Patch discipline
+- disable legacy auth methods
+- patch discipline
 
----
-## 6. Internal Interfaces & Blast Radius
+## Internal Interfaces And Blast Radius
 
-### 6.1 Postfix ↔ Dovecot (LMTP)
+### Postfix to Dovecot (LMTP)
 
 Risks:
-- Misdelivery via config error
-- Permission mistakes exposing mailboxes
-- Over-broad socket access
+
+- misdelivery via config error
+- permission mistakes exposing mailboxes
+- over-broad socket access
 
 Controls:
+
 - Unix socket only
-- Minimal permissions
-- Dedicated virtual mail user/group
+- minimal permissions
+- dedicated virtual mail user and group
 
-### 6.2 Mail Storage (Maildir)
+### Mail storage (Maildir)
 
 Risks:
-- Disk exhaustion kills all services
-- Backup failure causes silent data loss
-- Ownership drift leaks data
+
+- disk exhaustion kills all services
+- backup failure causes silent data loss
+- ownership drift leaks data
 
 Controls:
-- Disk usage monitoring
-- Quotas
-- Tested backups
 
----
-## 7. Boundary Weakness: Single-Host Reality
+- disk usage monitoring
+- quotas
+- tested backups
+
+## The Final State
 
 By collapsing IMAP, storage, and MTA onto one VPS:
 
-- A single RCE compromises mail, credentials, and identity.
-- Disk pressure impacts all services simultaneously.
-- Isolation relies on discipline, not hardware.
+- a single RCE compromises mail, credentials, and identity
+- disk pressure impacts all services simultaneously
+- isolation relies on discipline, not hardware
 
----
-## 8. Observability Philosophy
+That is the current reality, not a hidden detail.
 
-I expect to clearly see **availability failures** and **auth failures**: service down, queues backing up, disk filling, brute-force attempts, and obvious delivery failures (bounces, Gmail rejections). I knowingly accept being blind to **quiet failures**: slow reputation decay, subtle spam-folder placement, low-volume credential abuse, and partial message loss that does not trigger errors. Metrics are intentionally minimal because email systems generate noise that encourages false confidence. Human checks (sending test mail, checking logs, verifying queue state) surface meaningful failures faster than dashboards in a system of this size.
+## Observability Philosophy
 
----
-## 9. Falsifiability: What Would Prove This Design Insufficient
+I expect to clearly see **availability failures** and **auth failures**: service down, queues backing up, disk filling, brute-force attempts, and obvious delivery failures such as bounces or Gmail rejections.
 
-This design is considered **invalid** if any of the following become true:
+I knowingly accept being blind to **quiet failures**: slow reputation decay, subtle spam-folder placement, low-volume credential abuse, and partial message loss that does not trigger errors.
 
-- A single compromised user credential can generate enough spam to irreversibly damage domain or IP reputation.
-- Disk exhaustion occurs without early human-visible warning.
-- Abuse or compromise is detected only after third-party complaints.
-- Mailbox data loss occurs without immediate detection.
-- Operational load exceeds what can be safely handled without automation.
+Metrics are intentionally minimal because email systems generate noise that encourages false confidence. Human checks like sending test mail, checking logs, and verifying queue state surface meaningful failures faster than dashboards in a system of this size.
 
-If any of these happen, the boundary design has failed and must be replaced with stronger isolation (split-host or tiered design).
+## Verification
 
----
-## 10. Failure & Abuse Scenarios
+This note is a boundary and risk document, so its current verification is conceptual:
+
+- the exposed ports and services are explicitly enumerated
+- the trust model and control model are written down
+- the single-host compromise is documented instead of hidden
+
+## Failure Modes Worth Caring About
 
 ### Most likely
-- Brute force against 993/587
-- Spam flood against 25
+
+- brute force against 993 or 587
+- spam flood against 25
 - DNS drift breaking deliverability
+
 ### Worst case
-- VPS compromise → mailbox exfiltration → outbound abuse → reputation burn
+
+- VPS compromise leading to mailbox exfiltration, outbound abuse, and reputation burn
+
 ### 3am recovery plan
+
 1. Restrict inbound ports immediately.
 2. Check disk and queue state.
 3. Identify abuse in logs.
 4. Rotate credentials.
 5. Pause outbound if reputation is damaged.
 
----
-## 11. Improvements / Next Iteration
+## What Would Prove This Design Insufficient
 
-- Re-separate edge MTA and mailbox storage.
-- Add lightweight alerts for disk and queue depth.
-- Enforce stricter per-user limits.
-- Implement MTA-STS and TLS reporting.
+This design is invalid if any of the following become true:
 
----
-## 12. Notes I Don’t Want To Relearn
+- a single compromised user credential can generate enough spam to irreversibly damage domain or IP reputation
+- disk exhaustion occurs without early human-visible warning
+- abuse or compromise is detected only after third-party complaints
+- mailbox data loss occurs without immediate detection
+- operational load exceeds what can be safely handled without automation
 
-- Email fails quietly.
-- Reputation damage is harder to fix than outages.
-- Single-host mail stacks work until they don’t.
+If any of these happen, the boundary design has failed and should be replaced with stronger isolation.
 
----
-## 13. References
+## Improvements And Next Iteration
+
+- re-separate edge MTA and mailbox storage
+- add lightweight alerts for disk and queue depth
+- enforce stricter per-user limits
+- implement MTA-STS and TLS reporting
+
+## Notes I Do Not Want To Relearn
+
+- email fails quietly
+- reputation damage is harder to fix than outages
+- single-host mail stacks work until they do not
+
+## References
 
 - Postfix documentation
 - Dovecot documentation
-- Relevant SMTP/IMAP RFCs
+- Relevant SMTP and IMAP RFCs
+- [Mail Observability Pipeline](./mail-observability-pipeline.md)
+- [From Pipes to Signal: Building a Mail Observability System](../../log/raw/2026-03-05-mail-observability-from-pipes-to-signal.md)

@@ -34,9 +34,12 @@ jobs:
           mkdir -p site/app/posts
 
           rsync -av --delete \
-            --exclude ".git/" \
-            --exclude ".github/" \
-            --exclude ".obsidian/" \
+            --prune-empty-dirs \
+            --exclude "/.archive/" \
+            --exclude "/templates/" \
+            --include "*/" \
+            --include "*.md" \
+            --exclude "*" \
             "posts/" \
             "site/app/posts/"
 

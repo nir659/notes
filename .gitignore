@@ -1,4 +1,17 @@
-posts/.obsidian/
-**/.obsidian/
-.DS_Store
-Thumbs.db
+# Ignore everything by default; this repo should only publish notes.
+*
+
+# Keep repository plumbing tracked.
+!/.gitignore
+!/.github/
+!/.github/workflows/
+!/.github/workflows/*.yml
+
+# Allow note files under the content tree.
+!/posts/
+!/posts/**/
+!/posts/**/*.md
+
+# Keep local-only content out of the repo publish path.
+/posts/.archive/
+/posts/templates/

@@ -1,91 +1,160 @@
-## DEVLOG – Turning That Mania Benchmark Mess Into Actual ML
+---
+title: Turning the mania benchmark into actual ML
+slug: turning-the-mania-benchmark-into-actual-ml
+type: experiment
+status: draft
+date: undated
+updated: 2026-04-17
+tags:
+  - ml
+  - benchmark
+  - audio
+  - osu
+  - sequence-modeling
+summary: The project moved from API-driven LLM experiments to an audio-first ML benchmark with a large beatmap dataset and a leakage-free training pipeline.
+verification_status: partial
+verified_on:
+---
 
-Hey, so yeah, this started out as a total API nightmare. I had this pipeline going: grab the .osz file, pull out the notes, turn them into frames, batch them, chuck it at some LLM API, get back whatever nonsense it spits out, convert that to a replay, score it, and then just kinda stare at the screen feeling dumb.
+# Turning the mania benchmark into actual ML
 
-None of those models got above like 2% accuracy. Makes sense though, they're not built for timing or predicting sequences that actually matter. They just barf out stuff that looks structured but misses the rhythm completely. It's like asking a poet to do calculus.
+## Context
 
-That's when it hit me: screw this "LLMs play osu" vibe. Let's make it a legit ML benchmark instead.
+This started out as a total API nightmare. I had a pipeline that grabbed the `.osz` file, pulled out the notes, turned them into frames, batched them, sent them to an LLM API, converted the output to a replay, scored it, and then stared at the result.
 
-Pivoted hard. Now it's about building my own model, training it from scratch, measuring the crap out of it, and tweaking until it doesn't suck. No more API begging. Just straight-up machine learning.
+None of those models got above roughly 2% accuracy. That made sense. They were not built for timing or for predicting event sequences that actually matter.
 
-## Dataset Scaling Nightmare
+That was the point where the project stopped being “LLMs play osu” and became a real ML benchmark instead.
 
-I Needed way more data to make this work. I remembered when i played Etterna it had tons of free packs, sounded perfect. But their download speed caps at about 1MB/s, which meant I'd be waiting around for days and no one seeded the torrents either, soooo
+## Goal
 
-Pivoted again. Threw together an osu API v2 client to snag beatmap metadata. API doesn't let you download directly, which is annoying, so I hacked around with cookie auth for direct grabs. unreliable, but it did the job for the 2 maybe 3 times i used it
+- build a legitimate machine-learning benchmark instead of an API gimmick
+- train a model from scratch and measure it honestly
+- predict timed events from audio rather than from leaked chart features
 
-Then I remembered osu has song packs like etterna with a higher download speed at around ~50MB/s. Instead of scraping one by one like a noob, I hit the packs endpoint and automated the whole thing.
+## Environment
+
+- osu! / mania beatmap data packaged as `.osz`
+- dataset downloads from song packs and API-assisted metadata collection
+- TCN model as the first real baseline
+- audio features built with `librosa`
+- replay generation available but not yet fully looped into training
+
+## The Actual Problem
+
+The project kept hitting three different classes of failure:
+
+- the API-based LLM approach was structurally wrong for rhythm timing
+- the first “real” ML pipeline leaked labels into the features
+- scaling the dataset and training loop introduced operational pain that had to be solved before iteration could become real
+
+## What Changed
+
+### Dataset scaling nightmare
+
+I needed way more data to make this work. I first looked at Etterna packs, but the download speed cap was around 1 MB/s and the torrents were barely seeded.
+
+So I pivoted again. I built an osu API v2 client to grab beatmap metadata. The API did not allow direct downloads, so I worked around it with cookie auth for direct grabs. That was unreliable, but good enough for a couple of runs.
+
+Then I remembered osu song packs had much better download speed at around 50 MB/s. Instead of scraping one by one, I hit the packs endpoint and automated the whole thing.
 
 I wrote a script to:
-- List out all the packs
-- Fetch beatmapsets and show the links through osuapi v2
-- Download the .zip files
-- Dump everything into a data folder
-- Dedupe by beatmapset ID
-- Keep track of unique songs
 
-Ended up with 336 packs, around 6.6k beatmapsets, 5.8k unique songs, and about 51GB of raw data. Went from zero to overload real quick.
+- list all the packs
+- fetch beatmapsets and show links through osu API v2
+- download the zip files
+- dump everything into a data folder
+- dedupe by beatmapset ID
+- keep track of unique songs
 
-## My First ML Try
+That produced 336 packs, around 6.6k beatmapsets, 5.8k unique songs, and about 51 GB of raw data.
 
-I got the dataset built, split it by maps instead of frames to avoid any leakage; because that's just embarrassing.
+### My first ML try
 
-Trained a tiny TCN model. Press F1 score? Straight 1.0; I said “no way I’m that good”
+I split the dataset by maps instead of frames to avoid leakage.
 
-Spoiler: I wasn't. Turns out the features for lanes 0-3 were literally the same as the press labels. Same frame and same spots. Model just copied input to output. So I basically invented a fancy photocopier.
+Then I trained a tiny TCN model. Press F1 score came back as 1.0, which looked fake because it was fake.
 
-Releases were worse because the features marked holds as 1 the whole time, but labels only ping 1 on the exact release frame. So it cheated on presses, x_x on releases. Total leakage disaster.
+The features for lanes 0-3 were literally the same as the press labels. Same frame and same positions. The model was copying the input to the output.
 
-## Audio rewrite
+Releases were worse because the features marked holds as `1` the whole time, while the labels only marked `1` on the exact release frame. So the model cheated on presses and fell apart on releases.
 
-Decided: The model must predict from sound, not the chart.
+### Audio rewrite
 
-Redid the feature pipeline:
-- Pull audio from .osz using the per-difficulty AudioFilename
-- Load with librosa at 22050Hz
-- 10ms hop length
-- 80-bin mel spectrogram
-- Onset strength and RMS
-- Aggregate to 20ms grid to match labels
-- Save as float16
-- Normalize based on train split stats only
+I decided the model had to predict from sound, not from the chart.
 
-Features end up at 82 dims pooled, or 164 stacked. Zero note stuff allowed. Burned it all.
+So I redid the feature pipeline:
 
-## Early Audio Results (On 200 Maps)
+- pull audio from `.osz` using the per-difficulty `AudioFilename`
+- load with `librosa` at 22050 Hz
+- use 10 ms hop length
+- build an 80-bin mel spectrogram
+- derive onset strength and RMS
+- aggregate to a 20 ms grid to match labels
+- save features as `float16`
+- normalize based on train split stats only
 
-Training felt way more legit now.
+Features ended up at 82 pooled dims or 164 stacked dims. No note features were kept.
 
-Press F1 around 0.35, releases 0.06 to 0.09, holds about 0.25.
+### Operational constraints
 
-With a ±1 frame wiggle room: presses up to 0.42, releases 0.09, holds 0.17.
+Training on the full dataset took roughly 10 hours.
 
-Not blowing anyone's mind, but it's honest work. Model's picking up onsets okay, but releases? Audio doesn't scream "stop now" super clearly. And it overdoes holds like it's trying too hard.
+I dealt with that by adding:
 
-## Eval Wake-Up Call
+- checkpoints for model and optimizer
+- resume support
+- tiny validation runs for faster sanity checks
+- the option of using a cloud GPU later if needed
 
-Micro-F1 hovers 0.25 to 0.33 based on thresholds. Precision's meh, recall's better. Releases drag it down, holds are all over.
+## Verification
 
-Copy-last baseline looks stupid good with tolerance, but frame eval is kinda pointless anyway.
+### Early audio results on 200 maps
 
-Hit me: classifying frames isn't the same as playing mania. Replays care about hits, not per-frame matches.
+Training felt much more legitimate after the rewrite.
 
-So F1 going up doesn't auto-mean better gameplay.
+- press F1 around 0.35
+- release F1 around 0.06 to 0.09
+- hold F1 around 0.25
 
-## Infra Struggles
+With a +/-1 frame tolerance:
 
-Training the full set? Hours on end, roughly ~10hrs
+- presses up to 0.42
+- releases around 0.09
+- holds around 0.17
 
-Fixed it with checkpoints for model and optimizer, resume whenever. Tiny validation for quick checks. Maybe cloud GPU later if I get desperate.
+That was not impressive, but it was honest. The model was clearly picking up onsets better than releases.
 
-## What This Turned Into
+### Eval wake-up call
 
-Ditched the "LLMs try osu" gimmick. Not even "AI plays game" anymore.
+Micro-F1 hovered around 0.25 to 0.33 depending on thresholds. Precision was mediocre, recall was better, releases dragged the metric down, and holds were unstable.
 
-It's audio to timed event prediction, with super strict windows. And it actually learns stuff.
+The copy-last baseline also looked weirdly strong under tolerant evaluation, which was another reminder that frame classification is not the same thing as actually playing mania.
 
-## Where It's At Now
+F1 going up did not automatically mean better gameplay.
 
-I'm sitting on a 50GB dataset, audio pipeline's working, no leakage left, presses are decent, releases exist but weak, holds kinda work. Replay gen's there but not looped into training yet. And training picks up where it left off.
+## The Final State
 
-Went from joke to actual sequence problem. Still rough around the edges but hey, it's not bad for a dropout.
+This is no longer “LLMs try osu.”
+
+It is audio-to-timed-event prediction under strict timing windows.
+
+The current state is:
+
+- a 50+ GB dataset
+- a working audio pipeline
+- leakage removed from the feature pipeline
+- decent press prediction
+- weak but real release prediction
+- hold modelling that kind of works but is unstable
+- replay generation present but not fully integrated into training
+- checkpointed training that can resume instead of restarting from scratch
+
+It went from a joke to an actual sequence-modeling problem.
+
+## Failure Modes Worth Caring About
+
+- label leakage re-entering the feature pipeline
+- frame-level metrics looking good without corresponding gameplay value
+- release prediction staying weak because audio cues do not sharply mark release timing
+- long training times making iteration too slow without checkpoints or reduced validation loops

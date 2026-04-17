@@ -1,3 +1,61 @@
+---
+title: Docker install scripts for Debian and Ubuntu
+slug: docker-install-scripts-for-debian-and-ubuntu
+type: runbook
+status: draft
+date: undated
+updated: 2026-04-17
+tags:
+  - setup
+  - docker
+  - debian
+  - ubuntu
+summary: This note captures two Docker installation scripts for Debian and Ubuntu that add the official repository, install the engine stack, and add the invoking user to the docker group.
+verification_status: partial
+verified_on:
+---
+
+# Docker install scripts for Debian and Ubuntu
+
+## Context
+
+This note stores two shell scripts for installing Docker from the official repository on Debian and Ubuntu.
+
+Both scripts follow the same shape:
+
+- require root
+- install prerequisites
+- add Docker’s GPG key and APT repository
+- install the engine, CLI, containerd, buildx, and compose plugin
+- add the invoking non-root user to the `docker` group when possible
+- verify the install with `docker run hello-world`
+
+## Goal
+
+- keep a reproducible Docker install path for Debian and Ubuntu
+- use the official Docker repository instead of distro-default packages
+- end with a quick functional verification of the install
+
+## Environment
+
+- Debian or Ubuntu system with `apt`
+- root privileges
+- outbound network access for repository bootstrap
+- optional `SUDO_USER` for post-install group membership
+
+## The Final State
+
+If the scripts complete successfully:
+
+- Docker packages are installed from Docker’s official repository
+- `docker` commands are available
+- the invoking user is added to the `docker` group when applicable
+- `docker run hello-world` succeeds
+
+## Implementation
+
+### Debian
+
 ```bash
 # debian
 # /bin/bash
@@ -64,6 +122,8 @@ docker run hello-world
 echo -e "\n${GREEN}Script finished successfully.${NC}"
 ```
 
+### Ubuntu
+
 ```bash
 # ubuntu
 #!/bin/bash
@@ -129,3 +189,19 @@ docker run hello-world
 
 echo -e "\n${GREEN}Script finished successfully.${NC}"
 ```
+
+## Verification
+
+Expected proof after running:
+
+- `docker --version` works
+- `docker info` returns daemon information
+- `docker run hello-world` succeeds
+- the invoking user is present in the `docker` group after a new login session
+
+## Failure Modes Worth Caring About
+
+- network or repository bootstrap failure leaving half-configured APT state
+- adding the repository correctly but forgetting to refresh package indexes
+- assuming `SUDO_USER` exists when the script is run directly as root
+- forgetting that docker group membership requires a new login session

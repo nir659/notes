@@ -1,3 +1,57 @@
+---
+title: Basic server security init script
+slug: basic-server-security-init-script
+type: runbook
+status: draft
+date: undated
+updated: 2026-04-17
+tags:
+  - setup
+  - linux
+  - security
+  - ssh
+summary: This note captures a one-shot server bootstrap script for SSH hardening, firewall setup, Fail2ban, unattended upgrades, and basic sysctl tuning.
+verification_status: partial
+verified_on:
+---
+
+# Basic server security init script
+
+## Context
+
+This note captures a single script used for basic server security setup.
+
+It is opinionated and interactive: it expects root, creates a sudo user, prompts for an SSH public key, hardens SSH, enables UFW, configures Fail2ban, enables unattended upgrades, and appends a small sysctl hardening block.
+
+## Goal
+
+- create a usable first-pass server hardening script
+- disable password auth and root login over SSH
+- enable a minimal firewall and SSH brute-force protection
+- turn on automatic security updates
+
+## Environment
+
+- Debian or Ubuntu-style system using `apt`
+- `openssh-server`, `ufw`, `fail2ban`, `unattended-upgrades`
+- interactive shell with root privileges
+- script expects a target username and a pasted SSH public key
+
+## The Final State
+
+If the script runs successfully, it should leave the system in this state:
+
+- SSH moved to the configured port with password auth disabled
+- root login disabled
+- target user created with sudo access
+- SSH public key installed
+- UFW enabled and allowing the configured SSH port
+- Fail2ban enabled for SSH
+- unattended upgrades enabled
+- extra sysctl hardening values appended and loaded
+
+## Implementation
+
 ```bash
 #!/bin/bash
 set -e
@@ -193,3 +247,20 @@ echo ""
 
 log "Security setup script completed!"
 ```
+
+## Verification
+
+Expected proof after running:
+
+- SSH listens on the configured port and rejects password auth
+- `ufw status` shows the chosen SSH port allowed
+- `systemctl status fail2ban` shows the jail active
+- `systemctl status unattended-upgrades` indicates the service is enabled or running as expected
+- `sysctl -a` shows the appended hardening values applied
+
+## Failure Modes Worth Caring About
+
+- running this remotely and locking yourself out by changing SSH config before validating the key
+- blindly overwriting `sshd_config` instead of merging with distro-specific defaults
+- appending duplicate sysctl settings on repeated runs
+- assuming `/var/log/auth.log` is the correct Fail2ban log path on every target distro
